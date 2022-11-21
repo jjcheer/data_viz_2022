@@ -99,3 +99,170 @@ airquality %>%
 
 Your can polishing the plot by customize the `shape`,`color`,`fill`, etc.
 
+```{r}
+# airquality %>% 
+#   ggplot(aes(Wind, Temp, size = Solar.R)) + 
+#   geom_point(shape = 21, fill = "red") +
+#   scale_size_continuous(range = c(1,10))
+```
+
+- bubble plots with lable
+
+We will use another more complicated data set to demonstrate.
+
+```{r}
+data(mtcars)
+str(mtcars)
+```
+
+Please refer the [webpage](https://rpubs.com/neros/61800) on the detail explanation of each of the variable.
+
+```{r}
+
+library(ggrepel)
+
+ggplot(data=mtcars, aes(x=wt,y=mpg))+
+  geom_point(aes(size=disp,fill=disp),shape=21,colour="black",alpha=0.8)+
+  scale_fill_gradient2(low="#377EB8",high="#E41A1C",midpoint = mean(mtcars$disp))+
+  geom_text_repel(label = mtcars$disp )+
+  scale_size_area(max_size=12)+
+  guides(size = guide_legend((title="Value")),
+         fill = guide_legend((title="Value")))+
+  theme(
+    legend.text=element_text(size=10,face="plain",color="black"),
+    axis.title=element_text(size=10,face="plain",color="black"),
+    axis.text = element_text(size=10,face="plain",color="black"),
+    legend.position = "right"
+  )
+```
+
+- different shapes of bubbles.
+
+```{r}
+ggplot(mtcars, aes(wt,mpg))+
+  geom_point(aes(size=disp,fill=disp),shape=22,colour="black",alpha=0.8)+
+  scale_fill_gradient2(low=brewer.pal(7,"Set1")[2],high=brewer.pal(7,"Set1")[1],
+                       midpoint = mean(mtcars$disp))+
+  scale_size_area(max_size=12)+
+  guides(fill = guide_legend((title="Value")),
+         size =  guide_legend((title="Value")))+
+  theme(
+    text=element_text(size=15,color="black"),
+    plot.title=element_text(size=15,family="myfont",face="bold.italic",color="black")#,
+    #legend.position=c(0.9,0.05)
+  )
+```
+
+# 3D surface plots
+
+```{r}
+
+library(plotly)
+data("volcano")
+str(volcano)
+
+```
+
+> Dataset volcano is the topographic information on Auckland's Maunga Whau Volcano: the data set gives the height of the volcano in a 10*10 meter grid. 
+
+For the matrix gives the z of the volcano, so it's quite easy to draw a surface 3D.
+
+```{r}
+fig <- plot_ly(z = volcano)
+fig <- fig %>% 
+  add_surface()
+fig
+```
+
+or just one line:
+
+```{r}
+plot_ly(z = ~volcano, type = "surface")
+```
+
+# Multiple variables
+
+- Chord diagram
+
+```{r}
+library(circlize) 
+library(RColorBrewer) 
+set.seed(999) 
+mat = matrix(sample(18, 18), 3, 6) 
+rownames(mat) = paste0("S", 1:3) 
+colnames(mat) = paste0("E", 1:6) 
+df = data.frame(from = rep(rownames(mat), 
+                           times = ncol(mat)), 
+                to = rep(colnames(mat), 
+                         each = nrow(mat)), 
+                value = as.vector(mat), 
+                stringsAsFactors = FALSE) 
+chordDiagram(df,
+             grid.col = brewer.pal(9,"Set1")[1:9],
+             link.border="grey") # use data.frame to draw chord diagram 
+circos.clear() 
+chordDiagram(mat,
+             grid.col = brewer.pal(9,"Set1")[1:9],
+             link.border="grey") # using matrix
+circos.clear()
+```
+
+- Sankey diagram
+
+```{r}
+library(ggalluvial) # alluvial
+library(ggplot2) 
+data(vaccinations) 
+levels(vaccinations$response) <- rev(levels(vaccinations$response)) 
+ggplot(vaccinations, 
+       aes(x = survey, 
+           stratum = response, 
+           alluvium = subject, 
+           weight = freq, 
+           fill = response, 
+           label = response)) + 
+  geom_flow(alpha = 0.7,
+            color = "darkgray") + 
+  geom_stratum(alpha = 1) + 
+  geom_text(stat = "stratum", 
+            size = 3.5) + 
+  theme_classic()+ #coord_flip() + 
+  theme(legend.position = "none", 
+        axis.text.x =element_text(color="black",
+                                  size=12), 
+        axis.title.x = element_blank(), 
+        axis.text.y =element_blank(), 
+        axis.line = element_blank(), 
+        axis.ticks =element_blank() ) +
+  ggtitle("Vaccination Survey responses at three points in time")
+```
+
+The sankey diagram for lj dataset.
+
+```{r}
+library(ggalluvial)
+load("/Users/jameschen/Documents/02_Teaching/06_r4ds/slides/data/lj_sh_2019.RData")
+library(showtext)
+showtext_auto()
+lj %>% 
+  count(line,directions1,decoration,hml) %>% 
+  ggplot(aes(y=n,
+             axis1 = line, 
+             axis2 = directions1, 
+             axis3 = decoration,
+             axis4 = hml)) +
+  geom_flow(alpha = 0.7, colour = "darkgray",aes(fill = as.factor(line))) +
+  scale_x_discrete(limits = c("line","directions1","decoration","hml")) +
+  geom_stratum(alpha = 1) +
+  geom_text(stat = "stratum", size = 2, aes(label = after_stat(stratum))) +
+  ggtitle("Alluvial plot of Lianjia Secondhand houses 2019") 
+  theme_set(theme(text=element_text(family="Songti SC",size=12,face = "bold")))
+```
+
+Notes:
+
+- Chinese character: in this example, the theme_set way to solve the Chinese character is not take effect; Can use `showtext_auto` in the `showtext()` pkg.
+
+- colors in the flow: use fill to define the color of flow.
+
+- compare the two Sankey. the stratum in the first Sankey is the same, so we can define the color by `fill = response`, in the second Sankey, different stratum, but we can also specify a color by the argument of ill in the `geom_flow` function.
